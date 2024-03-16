@@ -1,6 +1,6 @@
 # RadixTree
 
-A package for generating radix trees, also called compressed tries.
+A package for generating [radix trees](https://en.wikipedia.org/wiki/Radix_tree), also called compressed tries.
 
 See also:
 - The `Trie` object in [DataStructures.jl](https://juliacollections.github.io/DataStructures.jl/stable/trie/)
