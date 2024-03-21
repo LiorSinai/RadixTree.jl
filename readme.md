@@ -79,7 +79,7 @@ Compare with a binary search through a linear word list:
 using RadixTree: find_n_larger
 words = sort(readlines(filepath))
 @time find_n_larger(words, "tre", 5); # 0.000010 seconds (2 allocations: 128 bytes)
-@time get_n_larger(tree, "tre", 5);       # 0.000051 seconds (37 allocations: 1.359 KiB)
+@time get_n_larger(tree, "tre", 5);   # 0.000051 seconds (37 allocations: 1.359 KiB)
 ```
 
 For this case the binary search is faster.
