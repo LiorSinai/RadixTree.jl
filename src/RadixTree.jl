@@ -330,20 +330,20 @@ end
 
 Base.IteratorSize(::PreOrderTraversal) = Base.SizeUnknown() 
 
-Base.iterate(iter::PreOrderTraversal) = ((iter.root.data, iter.root.is_label), [(iter.root, iter.root.data, 1)])
+Base.iterate(iter::PreOrderTraversal) = ((iter.root.data, iter.root.is_label), [(iter.root, 1, iter.root.data)])
 
-function Base.iterate(iter::PreOrderTraversal, stack_::Vector{Tuple{RadixTreeNode{T}, T, Int}}) where T
+function Base.iterate(iter::PreOrderTraversal, stack_::Vector{Tuple{RadixTreeNode{T}, Int, T}}) where T
     if isempty(stack_)
         return nothing
     end
     #println("--", [(t[2], t[3]) for t in stack_])
-    node, word, idx = last(stack_)
+    node, idx, word = last(stack_)
     if idx <= length(node.children)
         return _increment_stack!(stack_)
     else # backtrack
         pop!(stack_)
         while !(isempty(stack_))
-            node, word, idx = last(stack_)
+            node, idx, word = last(stack_)
             if idx <= length(node.children)
                 return _increment_stack!(stack_)
             end
@@ -354,11 +354,11 @@ function Base.iterate(iter::PreOrderTraversal, stack_::Vector{Tuple{RadixTreeNod
 end
 
 function _increment_stack!(stack_::Vector{<:Tuple})
-    node, word, idx = last(stack_)
-    stack_[end] = (node, word, idx + 1)
+    node, idx, word= last(stack_)
+    stack_[end] = (node, idx + 1, word)
     child = node.children[idx]
     new_word = word * child.data
-    push!(stack_, (child, new_word, 1))
+    push!(stack_, (child, 1, new_word))
     (new_word, child.is_label), stack_ 
 end
 
