@@ -2,8 +2,17 @@
 
 A package for generating [radix trees](https://en.wikipedia.org/wiki/Radix_tree), also called compressed tries.
 
+In a radix tree each node represents a prefix that can be merged with all its parents to produce a string.
+This is an efficient, space optimised way to store strings.
+This allows for `O(log(n))` search time through a list of strings.
+The main applications are for IP addresses and in [inverted indexes](https://www.algolia.com/blog/engineering/inside-the-algolia-engine-part-2-the-indexing-challenge-of-instant-search/) for information retrieval.
+They can also be used for predictive text and DNA sequences.
+
+This package also comes with a simple `find_n_larger` that uses binary search to search through a sorted linear list.
+This also runs in `O(log(n))` time and sets a competitive baseline.
+
 See also:
-- The `Trie` object in [DataStructures.jl](https://juliacollections.github.io/DataStructures.jl/stable/trie/)
+- The `Trie` struct in [DataStructures.jl](https://juliacollections.github.io/DataStructures.jl/stable/trie/)
 
 ## Usage
 
@@ -55,10 +64,20 @@ get_height(tree) # 11
 Base.summarysize(tree) # 978170 B = 0.93 MB
 ```
 
-FInd words that start with "insi":
+Find words that start with "insi":
 ```julia
 get_n_larger(tree, "insi", 5) # [inside, insider, insight, insights]
 ```
+
+Compare with a binary search through a linear word list:
+```julia
+using RadixTree: find_n_larger
+words = sort(readlines(filepath))
+@time find_n_larger(words, "tre", 5); # 0.000010 seconds (2 allocations: 128 bytes)
+@time get_n_larger(tree, "tre", 5);       # 0.000051 seconds (37 allocations: 1.359 KiB)
+```
+
+For this case the binary search is faster.
 
 Print the tree to a file:
 ```julia

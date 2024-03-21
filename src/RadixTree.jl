@@ -9,6 +9,8 @@ export get_n_larger, children, children_data, get_height, print_tree
     RadixTreeNode(data="", label=false)
 
 Create a node for a radix tree, also called a compressed trie.
+
+Reference: https://en.wikipedia.org/wiki/Radix_tree
 """
 mutable struct RadixTreeNode{T<:AbstractString}
     data::T
@@ -71,50 +73,87 @@ get(root, "hello")
 function get(root::RadixTreeNode, key::AbstractString)
     node = root
     num_found = 0
-    idx = 0 
+    suffix = key
     # skips the data in root
     while !(isnothing(node)) && !(is_leaf(node)) && (num_found < length(key))
-        suffix = chop(key; head=num_found, tail=0)
-        idx = search_children(node, suffix)
-        if isnothing(idx)
+        child = search_children(node, suffix)
+        if isnothing(child)
             break
         end
-        node = node.children[idx]
+        node = child
         num_found += length(node.data)
+        suffix = get_suffix(suffix, length(node.data))
     end
     node, num_found
 end
 
+# Unlike chop, returns a string
+function get_suffix(s::AbstractString, head::Int)
+    if isempty(s)
+        return s
+    end
+    s[nextind(s, firstindex(s), head):end]
+end
+
+"""
+    get_n_larger(root::RadixTreeNode, key, n)
+
+Find the nearest `n` larger keys than `key` in the radix tree.
+
+## Examples
+```jldoctest
+root = RadixTreeNode()
+for word in [
+    "inside", "insight", "insist", "inspire", "install", 
+    "instance", "instead", "instruct", "instrument", "insurance"
+    ]
+    insert!(root, word)
+end
+get_n_larger(tree, "insi", 5) # [inside, insight, insist] 
+```
+"""
 function get_n_larger(root::RadixTreeNode, key::AbstractString, n::Int)
     node, num_found = get(root, key)
     out = String[]
     prefix = first(key, num_found)
-    suffix = chop(key; head=num_found, tail=0)
-    i = 0
+    suffix = get_suffix(key, num_found)
     for child in node.children
-        if has_starting_overlap(suffix, child.data)
+        if startswith(child.data, suffix)
             for data in child
-                i += 1
                 push!(out, prefix * data)
-                if i == n
+                if length(out) == n
                     break
                 end
             end
         end
-        if i == n
+        if length(out)  == n
             break
         end
     end
     out
 end
 
-function has_starting_overlap(s1::AbstractString, s2::AbstractString)
-    for (c1, c2) in zip(s1, s2)
-        if c1 != c2
-            return false
-        end
+"""
+    find_n_larger(list, key, n)
+
+This function is used for benchmarking and testing purposes.
+It runs in `O(log(n))` time like `get_n_larger` and sets a competitive baseline.
+"""
+function find_n_larger(words::Vector{<:AbstractString}, key::AbstractString, n::Int)
+    out = String[]
+    idx = searchsortedfirst(words, key)
+    if idx > length(words)
+        return out
     end
-    true
+    if words[idx] != key
+        push!(out, words[idx])
+    end
+    idx += 1
+    while length(out) < n && startswith(words[idx], key)
+        push!(out, words[idx])
+        idx += 1
+    end
+    out
 end
 
 function in(key::AbstractString, root::RadixTreeNode)
@@ -123,20 +162,19 @@ function in(key::AbstractString, root::RadixTreeNode)
 end
 
 function search_children(node::RadixTreeNode, key::AbstractString)
-    for (idx, edge) in enumerate(node.children)
-        if startswith(key, edge.data)
-            return idx
+    for child in node.children
+        if startswith(key, child.data)
+            return child
         end
     end
 end
 
 function search_children_with_overlap(node::RadixTreeNode, key::AbstractString)
     for len_prefix in length(key):-1:1
-        prefix = first(key, len_prefix)
-        for (idx, edge) in enumerate(node.children)
-            data = first(edge.data, len_prefix)
+        for child in node.children
+            data = first(child.data, len_prefix)
             if startswith(key, data)
-                return idx, min(len_prefix, length(data))
+                return child, min(len_prefix, length(data))
             end
         end
     end
@@ -173,18 +211,20 @@ function insert!(root::RadixTreeNode{T}, key::AbstractString) where T
         node.is_label = true
         return
     end
-    suffix = chop(key; head=match_length, tail=0)
-    idx, overlap = search_children_with_overlap(node, suffix)
-    if isnothing(idx)
+    suffix = get_suffix(key, match_length)
+    child, overlap = search_children_with_overlap(node, suffix)
+    if isnothing(child)
         new_node = RadixTreeNode(T(suffix), true)
-        return insert_child_in_order!(node, new_node)
+        idx = searchsortedfirst(node.children, new_node; lt=(n1, n2)->n1.data < n2.data)
+        insert!(node.children, idx, new_node)
     else
-        node = node.children[idx]
+        node = child
         split!(node, overlap)
         if (overlap) < length(suffix) # add remainder
-            new_suffix = chop(suffix; head=overlap, tail=0)
+            new_suffix = get_suffix(suffix, overlap)
             new_node = RadixTreeNode(T(new_suffix), true)
-            insert_child_in_order!(node, new_node)
+            idx = new_node.data < node.children[1].data ? 1 : 2
+            insert!(node.children, idx, new_node)
         else
             node.is_label = true
             node
@@ -192,17 +232,8 @@ function insert!(root::RadixTreeNode{T}, key::AbstractString) where T
     end
 end
 
-function insert_child_in_order!(node::RadixTreeNode, child::RadixTreeNode)
-    idx = 1
-    while idx <= length(node.children) && (child.data > node.children[idx].data)
-        idx += 1
-    end
-    insert!(node.children, idx, child)
-    node
-end
-
 function split!(node::RadixTreeNode{T}, i::Int) where T
-    suffix = chop(node.data; head=i, tail=0)
+    suffix = get_suffix(node.data, i)
     new_node = RadixTreeNode{T}(T(suffix), node.is_label, node.children)
     node.data = first(node.data, i)
     node.children = [new_node]
@@ -264,7 +295,7 @@ collect(root) # [t, tea, team, ten]
 ```
 """
 function Base.iterate(root::RadixTreeNode, state=nothing)
-    iter =  InOrderTraversal(root)
+    iter = InOrderTraversal(root)
     next = isnothing(state) ? iterate(iter) : iterate(iter, state)
     while next !== nothing
         ((item, is_label), state) = next
@@ -308,13 +339,13 @@ function Base.iterate(iter::InOrderTraversal, stack_::Vector{Tuple{RadixTreeNode
     #println("--", [(t[2], t[3]) for t in stack_])
     node, word, idx = last(stack_)
     if idx <= length(node.children)
-        return _update_stack!(node, idx, word, stack_)
+        return _increment_stack!(stack_)
     else # backtrack
         pop!(stack_)
         while !(isempty(stack_))
             node, word, idx = last(stack_)
             if idx <= length(node.children)
-                return _update_stack!(node, idx, word, stack_)
+                return _increment_stack!(stack_)
             end
             pop!(stack_)
         end
@@ -322,9 +353,10 @@ function Base.iterate(iter::InOrderTraversal, stack_::Vector{Tuple{RadixTreeNode
     nothing
 end
 
-function _update_stack!(node::RadixTreeNode{T}, idx::Int, word::T, stack_::Vector) where T
-    child = node.children[idx]
+function _increment_stack!(stack_::Vector{<:Tuple})
+    node, word, idx = last(stack_)
     stack_[end] = (node, word, idx + 1)
+    child = node.children[idx]
     new_word = word * child.data
     push!(stack_, (child, new_word, 1))
     (new_word, child.is_label), stack_ 
