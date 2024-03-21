@@ -14,7 +14,7 @@ using RadixTree
                 RadixTreeNode("1.2", true),
             ]
         )
-        data = collect(InOrderTraversal(root))
+        data = collect(PreOrderTraversal(root))
         expected = [
             ("0-", false),
             ("0-1.1-", false),

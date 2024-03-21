@@ -99,7 +99,7 @@ List of available methods:
 - get: `get`, `get_n_larger`, `in`
 - children: `children`, `children_data`
 - describe: `eltype`, `get_height`
-- traverse: `InOrderTraversal`, `iterate`
+- traverse: `PreOrderTraversal`, `iterate`
 - show: `print_tree`
 
 ## Installation

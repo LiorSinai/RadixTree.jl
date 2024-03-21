@@ -2,7 +2,7 @@ module RadixTree
 
 import Base: eltype, get, in, insert!, show 
 
-export RadixTreeNode, InOrderTraversal
+export RadixTreeNode, PreOrderTraversal
 export get_n_larger, children, children_data, get_height, print_tree
 
 """
@@ -281,7 +281,7 @@ Base.IteratorSize(::RadixTreeNode) = Base.SizeUnknown()
 """
     iterate(root::RadixTreeNode)
 
-Iterate through root using an `InOrderTraversal` iterator by default.
+Iterate through root using an `PreOrderTraversal` iterator by default.
 Only nodes with `is_label=true` will be returned.
 
 # Examples
@@ -295,7 +295,7 @@ collect(root) # [t, tea, team, ten]
 ```
 """
 function Base.iterate(root::RadixTreeNode, state=nothing)
-    iter = InOrderTraversal(root)
+    iter = PreOrderTraversal(root)
     next = isnothing(state) ? iterate(iter) : iterate(iter, state)
     while next !== nothing
         ((item, is_label), state) = next
@@ -307,7 +307,7 @@ function Base.iterate(root::RadixTreeNode, state=nothing)
 end
 
 """
-    InOrderTraversal(root::RadixTreeNode)
+    PreOrderTraversal(root::RadixTreeNode)
 
 Create an in-order iterator through root.
 
@@ -318,21 +318,21 @@ insert!(root, "t")
 insert!(root, "ten")
 insert!(root, "team")
 insert!(root, "tea")
-for x in InOrderTraversal(root)
+for x in PreOrderTraversal(root)
     print(x, ", ")
 end
 # ("", false), ("t", true), ("te", false), ("tea", true), ("team", true), ("ten", true)
 ```
 """
-struct InOrderTraversal{R<:RadixTreeNode}
+struct PreOrderTraversal{R<:RadixTreeNode}
     root::R
 end
 
-Base.IteratorSize(::InOrderTraversal) = Base.SizeUnknown() 
+Base.IteratorSize(::PreOrderTraversal) = Base.SizeUnknown() 
 
-Base.iterate(iter::InOrderTraversal) = ((iter.root.data, iter.root.is_label), [(iter.root, iter.root.data, 1)])
+Base.iterate(iter::PreOrderTraversal) = ((iter.root.data, iter.root.is_label), [(iter.root, iter.root.data, 1)])
 
-function Base.iterate(iter::InOrderTraversal, stack_::Vector{Tuple{RadixTreeNode{T}, T, Int}}) where T
+function Base.iterate(iter::PreOrderTraversal, stack_::Vector{Tuple{RadixTreeNode{T}, T, Int}}) where T
     if isempty(stack_)
         return nothing
     end
