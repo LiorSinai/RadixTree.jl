@@ -2,6 +2,11 @@
 
 A package for generating [radix trees](https://en.wikipedia.org/wiki/Radix_tree), also called compressed tries.
 
+<p align="center">
+  <img src="images/wiki_radix_tree.png" alt="radix_tree" style="width:70%" margin="auto">
+  <p>Source: <a href="https://en.wikipedia.org/wiki/Radix_tree">en.wikipedia.org/wiki/Radix_tree</a>.</p>
+</p>
+
 In a radix tree each node represents a prefix that can be merged with all its parents to produce a string.
 This is an efficient, space optimised way to store strings.
 This allows for `O(log(n))` search time through a list of strings.
